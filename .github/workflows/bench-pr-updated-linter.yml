@@ -8,6 +8,7 @@ on:
 permissions:
   issues: write
 
+
 jobs:
 
   notify-ack:
@@ -29,6 +30,50 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HYPERFINE_VERSION: 1.18.0
+    strategy:
+      matrix:
+        target:
+          - org: golangci
+            repo: golangci-lint
+          - org: goreleaser
+            repo: goreleaser
+          - org: gohugoio
+            repo: hugo
+          - org: go-gitea
+            repo: gitea
+          - org: rclone
+            repo: rclone
+          - org: syncthing
+            repo: syncthing
+          - org: kubernetes
+            repo: kubernetes
+          - org: hashicorp
+            repo: terraform
+          - org: hashicorp
+            repo: consul
+          - org: grafana
+            repo: grafana
+          - org: etcd-io
+            repo: etcd
+          - org: go-acme
+            repo: lego
+          - org: traefik
+            repo: traefik
+          - org: spf13
+            repo: cobra
+          - org: google
+            repo: go-github
+          - org: beego
+            repo: beego
+          - org: grpc
+            repo: grpc-go
+          - org: go-delve
+            repo: delve
+          - org: ethereum
+            repo: go-ethereum
+          # CGO inside
+          - org: pact-foundation
+            repo: pact-go
 
     steps:
       - uses: actions/checkout@v4
@@ -38,29 +83,68 @@ jobs:
         with:
           go-version: stable
 
-      - name: Checkout PR
-        run: |
-          gh pr checkout --detach --repo "golangci/golangci-lint" ${{fromJson(github.event.issue.body).pr}}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: dependencies
-        run: go mod tidy
-
       - name: Hyperfine installation
         run: |
           wget https://github.com/sharkdp/hyperfine/releases/download/v${HYPERFINE_VERSION}/hyperfine_${HYPERFINE_VERSION}_amd64.deb
           sudo dpkg -i hyperfine_${HYPERFINE_VERSION}_amd64.deb
 
-      - name: Run bench
-        id: bench
-        run: make bench_local LINTER=${{fromJson(github.event.issue.body).linter}} VERSION=${{fromJson(github.event.issue.body).version}}
+      - name: Checkout PR
+        run: gh pr checkout --detach --repo "golangci/golangci-lint" ${{ fromJson(github.event.issue.body).pr }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build golangci-lint from PR
+        # use `go build` to set ldflags (it reduces some performance differences with binaries created by goreleaser)
+        run: |
+          go build -trimpath -ldflags '-s -w' -o golangci-lint ./cmd/golangci-lint
+          mv ./golangci-lint $(go env GOPATH)/bin/golangci-lint
+
+      - name: Install golangci-lint ${{ fromJson(github.event.issue.body).version }}
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "./temp-${GOLANGCI_LINT_VERSION}" "${GOLANGCI_LINT_VERSION}"
+          mv "temp-${GOLANGCI_LINT_VERSION}/golangci-lint" "$(go env GOPATH)/bin/golangci-lint-${GOLANGCI_LINT_VERSION}"
+          rm -rf "temp-${GOLANGCI_LINT_VERSION}"
+        env:
+          GOLANGCI_LINT_VERSION: ${{ fromJson(github.event.issue.body).version }}
+
+      - name: Clone ${{ matrix.target }}
+        run: |
+          git clone -q --depth 1 --single-branch https://github.com/${{ matrix.target.org }}/${{ matrix.target.repo }}.git /tmp/target
+          cd /tmp/target
+          go mod tidy
+
+      - name: Run Bench ${{ matrix.target }}
+        run: |
+          mkdir -p /tmp/outputs/${REPO}/
+          cd /tmp/target
+          hyperfine --warmup 1 --export-markdown perf.md \
+          -n 'local' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code 0 --print-issued-lines=false --enable-only ${LINTER}" \
+          -n "${GOLANGCI_LINT_VERSION}" --prepare "golangci-lint-${GOLANGCI_LINT_VERSION} cache clean" "golangci-lint-${GOLANGCI_LINT_VERSION} run --issues-exit-code 0 --print-issued-lines=false --enable-only ${LINTER}"
+          echo "## ${{ matrix.target.org }}/${REPO}" >> /tmp/outputs/${REPO}/perf.md
+          echo >> /tmp/outputs/${REPO}/perf.md
+          cat perf.md >> /tmp/outputs/${REPO}/perf.md
+          echo >> /tmp/outputs/${REPO}/perf.md
+        env:
+          GOLANGCI_LINT_VERSION: ${{ fromJson(github.event.issue.body).version }}
+          LINTER: ${{ fromJson(github.event.issue.body).linter }}
+          REPO: ${{ matrix.target.repo }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: outputs-${{ matrix.target.repo }}
+          path: /tmp/outputs/**/perf.md
 
   notify-job:
     runs-on: ubuntu-latest
     needs: bench-job
     if: ${{ github.event.label.name == 'bench-updated-linter' && always() }}
     steps:
+      - name: Load outputs
+        if: ${{ contains(needs.*.result, 'success') }}
+        uses: actions/download-artifact@v4
+        with:
+          pattern: outputs-*
+          path: /tmp/outputs/
 
       - name: Notify on Success
         if: ${{ contains(needs.*.result, 'success') }}
@@ -69,8 +153,9 @@ jobs:
           gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:CONFUSED}){reaction{content}subject{id}}}" | true
           gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:EYES}){reaction{content}subject{id}}}" | true
           (
-            echo "**${{ github.workflow }}**"
             echo "The benchmark is done!"
+            echo
+            cat /tmp/outputs/**/**/*.md
             echo
             echo "You can find the workflow here:"
             echo "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
