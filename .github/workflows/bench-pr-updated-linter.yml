@@ -9,7 +9,22 @@ permissions:
   issues: write
 
 jobs:
+
+  notify-ack:
+    if: ${{ github.event.label.name == 'bench-updated-linter' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Put a reaction
+        run: |
+          gh api graphql --silent --raw-field query="mutation AddReaction {addReaction(input:{subjectId:\"$NODE_ID\",content:EYES}){reaction{content}subject{id}}}"
+          gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:CONFUSED}){reaction{content}subject{id}}}" | true
+          gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:ROCKET}){reaction{content}subject{id}}}" | true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_ID: ${{ github.event.issue.node_id }}
+
   bench-job:
+    needs: notify-ack
     if: ${{ github.event.label.name == 'bench-updated-linter' }}
     runs-on: ubuntu-latest
     env:
@@ -22,15 +37,6 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
-
-      - name: Put a reaction
-        run: |
-          gh api graphql --silent --raw-field query="mutation AddReaction {addReaction(input:{subjectId:\"$NODE_ID\",content:EYES}){reaction{content}subject{id}}}"
-          gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:CONFUSED}){reaction{content}subject{id}}}" | true
-          gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:ROCKET}){reaction{content}subject{id}}}" | true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_ID: ${{ github.event.issue.node_id }}
 
       - name: Checkout PR
         run: |
