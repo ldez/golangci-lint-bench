@@ -107,7 +107,7 @@ jobs:
         env:
           GOLANGCI_LINT_VERSION: ${{ fromJson(github.event.issue.body).version }}
 
-      - name: Clone ${{ matrix.target }}
+      - name: Clone ${{ matrix.target.org }}/${{ matrix.target.repo }}
         run: |
           git clone -q --depth 1 --single-branch https://github.com/${{ matrix.target.org }}/${{ matrix.target.repo }}.git /tmp/target
           cd /tmp/target
@@ -121,7 +121,7 @@ jobs:
         env:
           LINTER: ${{ fromJson(github.event.issue.body).linter }}
 
-      - name: Run Bench ${{ matrix.target }}
+      - name: Run Bench ${{ matrix.target.org }}/${{ matrix.target.repo }}
         run: |
           mkdir -p /tmp/outputs/${REPO}/
           cd /tmp/target

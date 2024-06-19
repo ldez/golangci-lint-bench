@@ -91,13 +91,13 @@ jobs:
           make build
           cp ./golangci-lint $(go env GOPATH)/bin/golangci-lint
 
-      - name: Clone ${{ matrix.repository }}
+      - name: Clone ${{ matrix.target.org }}/${{ matrix.target.repo }}
         run: |
           git clone -q --depth 1 --single-branch https://github.com/${{ matrix.target.org }}/${{ matrix.target.repo }}.git /tmp/target
           cd /tmp/target
           go mod tidy
 
-      - name: Run Bench ${{ matrix.repository }}
+      - name: Run Bench ${{ matrix.target.org }}/${{ matrix.target.repo }}
         run: |
           cd /tmp/target
           golangci-lint cache clean
