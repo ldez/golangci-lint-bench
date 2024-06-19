@@ -29,28 +29,48 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        repository:
-          - 'golangci/golangci-lint'
-          - 'goreleaser/goreleaser'
-          - 'gohugoio/hugo'
-          - 'go-gitea/gitea'
-          - 'rclone/rclone'
-          - 'syncthing/syncthing'
-#          - 'moby/moby' # no go.mod (custom approach vendor.mod)
-          - 'kubernetes/kubernetes'
-          - 'hashicorp/terraform'
-          - 'hashicorp/consul'
-          - 'grafana/grafana'
-          - 'etcd-io/etcd'
-          - 'go-acme/lego'
-          - 'traefik/traefik'
-          - 'spf13/cobra'
-          - 'google/go-github'
-          - 'beego/beego'
-          - 'grpc/grpc-go'
-          - 'go-delve/delve'
-          - 'ethereum/go-ethereum'
-          - 'pact-foundation/pact-go' # CGO inside
+        target:
+          - org: golangci
+            repo: golangci-lint
+          - org: goreleaser
+            repo: goreleaser
+          - org: gohugoio
+            repo: hugo
+          - org: go-gitea
+            repo: gitea
+          - org: rclone
+            repo: rclone
+          - org: syncthing
+            repo: syncthing
+          - org: kubernetes
+            repo: kubernetes
+          - org: hashicorp
+            repo: terraform
+          - org: hashicorp
+            repo: consul
+          - org: grafana
+            repo: grafana
+          - org: etcd-io
+            repo: etcd
+          - org: go-acme
+            repo: lego
+          - org: traefik
+            repo: traefik
+          - org: spf13
+            repo: cobra
+          - org: google
+            repo: go-github
+          - org: beego
+            repo: beego
+          - org: grpc
+            repo: grpc-go
+          - org: go-delve
+            repo: delve
+          - org: cilium
+            repo: cilium
+          # CGO inside
+          - org: pact-foundation
+            repo: pact-go
 
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +82,7 @@ jobs:
 
       - name: Checkout PR
         run: |
-          gh pr checkout --detach --repo "golangci/golangci-lint" ${{fromJson(github.event.issue.body).pr}}
+          gh pr checkout --detach --repo "golangci/golangci-lint" ${{ fromJson(github.event.issue.body).pr }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -73,7 +93,7 @@ jobs:
 
       - name: Clone ${{ matrix.repository }}
         run: |
-          git clone -q --depth 1 --single-branch https://github.com/${{ matrix.repository }}.git /tmp/target
+          git clone -q --depth 1 --single-branch https://github.com/${{ matrix.target.org }}/${{ matrix.target.repo }}.git /tmp/target
           cd /tmp/target
           go mod tidy
 
@@ -81,7 +101,7 @@ jobs:
         run: |
           cd /tmp/target
           golangci-lint cache clean
-          golangci-lint run --issues-exit-code=0 --timeout=30m --enable-only ${{fromJson(github.event.issue.body).linter}}
+          golangci-lint run --issues-exit-code=0 --timeout=30m --enable-only ${{ fromJson(github.event.issue.body).linter }}
 #          golangci-lint run --no-config --issues-exit-code=0 --timeout=30m --disable-all --enable ${{fromJson(github.event.issue.body).linter}}
 
   notify-job-result:

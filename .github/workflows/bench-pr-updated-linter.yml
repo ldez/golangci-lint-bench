@@ -69,8 +69,8 @@ jobs:
             repo: grpc-go
           - org: go-delve
             repo: delve
-          - org: ethereum
-            repo: go-ethereum
+          - org: cilium
+            repo: cilium
           # CGO inside
           - org: pact-foundation
             repo: pact-go
@@ -134,7 +134,7 @@ jobs:
           name: outputs-${{ matrix.target.repo }}
           path: /tmp/outputs/**/perf.md
 
-  notify-job:
+  notify-job-result:
     runs-on: ubuntu-latest
     needs: bench-job
     if: ${{ github.event.label.name == 'bench-updated-linter' && always() }}
