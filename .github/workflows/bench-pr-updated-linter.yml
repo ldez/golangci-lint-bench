@@ -113,13 +113,21 @@ jobs:
           cd /tmp/target
           go mod tidy
 
+      - name: Simple run of golangci-lint ${{ matrix.target }}
+        run: |
+          cd /tmp/target
+          golangci-lint cache clean
+          golangci-lint run --issues-exit-code 0 --print-issued-lines=false --timeout=20m --enable-only ${LINTER}
+        env:
+          LINTER: ${{ fromJson(github.event.issue.body).linter }}
+
       - name: Run Bench ${{ matrix.target }}
         run: |
           mkdir -p /tmp/outputs/${REPO}/
           cd /tmp/target
           hyperfine --warmup 1 --export-markdown perf.md \
-          -n 'local' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code 0 --print-issued-lines=false --enable-only ${LINTER}" \
-          -n "${GOLANGCI_LINT_VERSION}" --prepare "golangci-lint-${GOLANGCI_LINT_VERSION} cache clean" "golangci-lint-${GOLANGCI_LINT_VERSION} run --issues-exit-code 0 --print-issued-lines=false --enable-only ${LINTER}"
+          -n 'local' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code 0 --timeout=20m --print-issued-lines=false --enable-only ${LINTER}" \
+          -n "${GOLANGCI_LINT_VERSION}" --prepare "golangci-lint-${GOLANGCI_LINT_VERSION} cache clean" "golangci-lint-${GOLANGCI_LINT_VERSION} run --issues-exit-code 0 --timeout=20m --print-issued-lines=false --enable-only ${LINTER}"
           echo "## ${{ matrix.target.org }}/${REPO}" >> /tmp/outputs/${REPO}/perf.md
           echo >> /tmp/outputs/${REPO}/perf.md
           cat perf.md >> /tmp/outputs/${REPO}/perf.md
