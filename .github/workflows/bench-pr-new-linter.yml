@@ -40,16 +40,12 @@ jobs:
             repo: gitea
           - org: rclone
             repo: rclone
-          - org: syncthing
-            repo: syncthing
           - org: kubernetes
             repo: kubernetes
           - org: hashicorp
             repo: terraform
           - org: hashicorp
             repo: consul
-          - org: grafana
-            repo: grafana
           - org: etcd-io
             repo: etcd
           - org: go-acme
@@ -97,12 +93,12 @@ jobs:
           cd /tmp/target
           go mod tidy
 
-      - name: Run Bench ${{ matrix.target.org }}/${{ matrix.target.repo }}
+      - name: Simple run of golangci-lint on ${{ matrix.target.org }}/${{ matrix.target.repo }}
         run: |
           cd /tmp/target
           golangci-lint cache clean
-          golangci-lint run --issues-exit-code=0 --timeout=30m --enable-only ${{ fromJson(github.event.issue.body).linter }}
-#          golangci-lint run --no-config --issues-exit-code=0 --timeout=30m --disable-all --enable ${{fromJson(github.event.issue.body).linter}}
+          golangci-lint run -v --issues-exit-code=0 --timeout=20m --show-stats --enable-only ${{ fromJson(github.event.issue.body).linter }}
+#          golangci-lint run --no-config --issues-exit-code=0 --timeout=20m --disable-all --enable ${{fromJson(github.event.issue.body).linter}}
 
   notify-job-result:
     runs-on: ubuntu-latest

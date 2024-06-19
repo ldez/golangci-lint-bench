@@ -43,16 +43,12 @@ jobs:
             repo: gitea
           - org: rclone
             repo: rclone
-          - org: syncthing
-            repo: syncthing
           - org: kubernetes
             repo: kubernetes
           - org: hashicorp
             repo: terraform
           - org: hashicorp
             repo: consul
-          - org: grafana
-            repo: grafana
           - org: etcd-io
             repo: etcd
           - org: go-acme
@@ -113,11 +109,11 @@ jobs:
           cd /tmp/target
           go mod tidy
 
-      - name: Simple run of golangci-lint ${{ matrix.target }}
+      - name: Simple run of golangci-lint on ${{ matrix.target.org }}/${{ matrix.target.repo }}
         run: |
           cd /tmp/target
           golangci-lint cache clean
-          golangci-lint run --issues-exit-code 0 --print-issued-lines=false --timeout=20m --enable-only ${LINTER}
+          golangci-lint run --issues-exit-code=0 --timeout=20m --show-stats --print-issued-lines=false --enable-only ${LINTER}
         env:
           LINTER: ${{ fromJson(github.event.issue.body).linter }}
 
@@ -126,7 +122,7 @@ jobs:
           mkdir -p /tmp/outputs/${REPO}/
           cd /tmp/target
           hyperfine --warmup 1 --export-markdown perf.md \
-          -n 'local' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code 0 --timeout=20m --print-issued-lines=false --enable-only ${LINTER}" \
+          -n 'local' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code=0 --timeout=20m --print-issued-lines=false --enable-only ${LINTER}" \
           -n "${GOLANGCI_LINT_VERSION}" --prepare "golangci-lint-${GOLANGCI_LINT_VERSION} cache clean" "golangci-lint-${GOLANGCI_LINT_VERSION} run --issues-exit-code 0 --timeout=20m --print-issued-lines=false --enable-only ${LINTER}"
           echo "## ${{ matrix.target.org }}/${REPO}" >> /tmp/outputs/${REPO}/perf.md
           echo >> /tmp/outputs/${REPO}/perf.md
