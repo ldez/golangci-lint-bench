@@ -72,17 +72,17 @@ jobs:
             repo: pact-go
 
     steps:
+      - name: Hyperfine installation
+        run: |
+          wget https://github.com/sharkdp/hyperfine/releases/download/v${HYPERFINE_VERSION}/hyperfine_${HYPERFINE_VERSION}_amd64.deb
+          sudo dpkg -i hyperfine_${HYPERFINE_VERSION}_amd64.deb
+
       - uses: actions/checkout@v4
         with:
           repository: 'golangci/golangci-lint'
       - uses: actions/setup-go@v5
         with:
           go-version: stable
-
-      - name: Hyperfine installation
-        run: |
-          wget https://github.com/sharkdp/hyperfine/releases/download/v${HYPERFINE_VERSION}/hyperfine_${HYPERFINE_VERSION}_amd64.deb
-          sudo dpkg -i hyperfine_${HYPERFINE_VERSION}_amd64.deb
 
       - name: Checkout PR
         run: gh pr checkout --detach --repo "golangci/golangci-lint" ${{ fromJson(github.event.issue.body).pr }}

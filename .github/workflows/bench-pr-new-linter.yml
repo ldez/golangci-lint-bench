@@ -98,7 +98,6 @@ jobs:
           cd /tmp/target
           golangci-lint cache clean
           golangci-lint run -v --issues-exit-code=0 --timeout=20m --show-stats --enable-only ${{ fromJson(github.event.issue.body).linter }}
-#          golangci-lint run --no-config --issues-exit-code=0 --timeout=20m --disable-all --enable ${{fromJson(github.event.issue.body).linter}}
 
   notify-job-result:
     runs-on: ubuntu-latest
