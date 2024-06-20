@@ -1,0 +1,129 @@
+name: Benchmark all linters
+
+on:
+  issues:
+    types:
+      - labeled
+
+permissions:
+  issues: write
+
+jobs:
+
+  notify-ack:
+    if: ${{ github.event.label.name == 'bench-all-linters' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Put a reaction
+        run: |
+          gh api graphql --silent --raw-field query="mutation AddReaction {addReaction(input:{subjectId:\"$NODE_ID\",content:EYES}){reaction{content}subject{id}}}"
+          gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:CONFUSED}){reaction{content}subject{id}}}" | true
+          gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:ROCKET}){reaction{content}subject{id}}}" | true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_ID: ${{ github.event.issue.node_id }}
+
+  bench-job:
+    needs: notify-ack
+    if: ${{ github.event.label.name == 'bench-all-linters' }}
+    runs-on: ubuntu-latest
+    env:
+      HYPERFINE_VERSION: 1.18.0
+
+    steps:
+      - name: Hyperfine installation
+        run: |
+          wget https://github.com/sharkdp/hyperfine/releases/download/v${HYPERFINE_VERSION}/hyperfine_${HYPERFINE_VERSION}_amd64.deb
+          sudo dpkg -i hyperfine_${HYPERFINE_VERSION}_amd64.deb
+
+      - uses: actions/checkout@v4
+        with:
+          repository: 'golangci/golangci-lint'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Build golangci-lint
+        # use `go build` to set ldflags (it reduces some performance differences with binaries created by goreleaser)
+        run: |
+          go build -trimpath -ldflags '-s -w' -o golangci-lint ./cmd/golangci-lint
+          mv ./golangci-lint $(go env GOPATH)/bin/golangci-lint
+
+      - name: Clone ${{ fromJson(github.event.issue.body).org }}/${{ fromJson(github.event.issue.body).repo }}
+        run: |
+          git clone -q --depth 1 --single-branch https://github.com/${ORG}/${REPO}.git /tmp/target
+          cd /tmp/target
+          go mod tidy
+        env:
+          ORG: ${{ fromJson(github.event.issue.body).org }}
+          REPO: ${{ fromJson(github.event.issue.body).repo }}
+
+      - name: Run bench on ${{ fromJson(github.event.issue.body).org }}/${{ fromJson(github.event.issue.body).repo }}
+        run: |
+          mkdir -p /tmp/outputs/${REPO}/
+          cd /tmp/target
+          LINTERS=$(golangci-lint linters | grep "^[a-z0-9]*:" | sed 's/:/ /g' | awk '{print $1}' | sort | sed -z 's/\n/,/g;s/,$/\n/')
+          hyperfine --sort 'mean-time' --export-markdown perf.md --warmup 1 -L linter "${LINTERS}" \
+          -n '{linter}' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code=0 --timeout=20m --print-issued-lines=false --enable-only {linter}"
+          echo "## ${ORG}/${REPO}" >> /tmp/outputs/${REPO}/perf.md
+          echo >> /tmp/outputs/${REPO}/perf.md
+          cat perf.md >> /tmp/outputs/${REPO}/perf.md
+          echo >> /tmp/outputs/${REPO}/perf.md
+        env:
+          ORG: ${{ fromJson(github.event.issue.body).org }}
+          REPO: ${{ fromJson(github.event.issue.body).repo }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: outputs-${{ fromJson(github.event.issue.body).repo }}
+          path: /tmp/outputs/**/perf.md
+
+  notify-job-result:
+    runs-on: ubuntu-latest
+    needs: bench-job
+    if: ${{ github.event.label.name == 'bench-all-linters' && always() }}
+    steps:
+      - name: Load outputs
+        if: ${{ contains(needs.*.result, 'success') }}
+        uses: actions/download-artifact@v4
+        with:
+          pattern: outputs-*
+          path: /tmp/outputs/
+
+      - name: Notify on Success
+        if: ${{ contains(needs.*.result, 'success') }}
+        run: |
+          gh api graphql --silent --raw-field query="mutation AddReaction {addReaction(input:{subjectId:\"$NODE_ID\",content:ROCKET}){reaction{content}subject{id}}}"
+          gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:CONFUSED}){reaction{content}subject{id}}}" | true
+          gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:EYES}){reaction{content}subject{id}}}" | true
+          (
+            echo "The benchmark is done!"
+            echo
+            cat /tmp/outputs/**/**/*.md
+            echo
+            echo "You can find the workflow here:"
+            echo "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          ) | \
+          gh issue comment "${ISSUE_NUMBER}" --repo ${{ github.repository }} -F -
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          NODE_ID: ${{ github.event.issue.node_id }}
+
+      - name: Notify on Failure
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: |
+          gh api graphql --silent --raw-field query="mutation AddReaction {addReaction(input:{subjectId:\"$NODE_ID\",content:CONFUSED}){reaction{content}subject{id}}}"
+          gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:ROCKET}){reaction{content}subject{id}}}" | true
+          gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:EYES}){reaction{content}subject{id}}}" | true
+          (
+            echo "**${{ github.workflow }}**"
+            echo "**Something went wrong!**"
+            echo
+            echo "**Details:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          ) | \
+          gh issue comment "${ISSUE_NUMBER}" --repo ${{ github.repository }} -F -
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          NODE_ID: ${{ github.event.issue.node_id }}
