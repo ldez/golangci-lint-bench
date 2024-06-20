@@ -108,9 +108,13 @@ jobs:
           golangci-lint run -v --issues-exit-code=0 --timeout=20m --show-stats --out-format colored-line-number,line-number:simple.txt --enable-only ${{ fromJson(github.event.issue.body).linter }}
           echo "## ${{ matrix.target.org }}/${REPO}" >> /tmp/outputs/${REPO}/perf.md
           echo >> /tmp/outputs/${REPO}/perf.md
+          echo '<details>' >> /tmp/outputs/${REPO}/perf.md
+          echo >> /tmp/outputs/${REPO}/perf.md
           echo '```' >> /tmp/outputs/${REPO}/perf.md
           cat simple.txt >> /tmp/outputs/${REPO}/perf.md
           echo '```' >> /tmp/outputs/${REPO}/perf.md
+          echo >> /tmp/outputs/${REPO}/perf.md
+          echo '</details>' >> /tmp/outputs/${REPO}/perf.md
           echo >> /tmp/outputs/${REPO}/perf.md
         env:
           REPO: ${{ matrix.target.repo }}
@@ -126,7 +130,9 @@ jobs:
           -n '{linter}' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code=0 --timeout=20m --print-issued-lines=false --enable-only {linter}"
           echo >> /tmp/outputs/${REPO}/perf.md
           cat perf.md >> /tmp/outputs/${REPO}/perf.md
-          echo >> /tmp/outputs/${REPO}/perf.
+          echo >> /tmp/outputs/${REPO}/perf.md
+        env:
+          REPO: ${{ matrix.target.repo }}
 
       - uses: actions/upload-artifact@v4
         with:
