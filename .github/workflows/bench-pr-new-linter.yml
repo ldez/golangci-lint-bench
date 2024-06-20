@@ -105,19 +105,22 @@ jobs:
           mkdir -p /tmp/outputs/${REPO}/
           cd /tmp/target
           golangci-lint cache clean
-          golangci-lint run -v --issues-exit-code=0 --timeout=20m --show-stats --out-format colored-line-number,line-number:simple.txt --enable-only ${{ fromJson(github.event.issue.body).linter }}
-          echo "## [${{ matrix.target.org }}/${REPO}](${{ github.server_url }}/${{ matrix.target.org }}/${REPO})" >> /tmp/outputs/${REPO}/perf.md
-          echo >> /tmp/outputs/${REPO}/perf.md
-          echo '<details>' >> /tmp/outputs/${REPO}/perf.md
-          echo >> /tmp/outputs/${REPO}/perf.md
-          echo '```' >> /tmp/outputs/${REPO}/perf.md
-          cat simple.txt >> /tmp/outputs/${REPO}/perf.md
-          echo '```' >> /tmp/outputs/${REPO}/perf.md
-          echo >> /tmp/outputs/${REPO}/perf.md
-          echo '</details>' >> /tmp/outputs/${REPO}/perf.md
-          echo >> /tmp/outputs/${REPO}/perf.md
+          golangci-lint run -v --issues-exit-code=0 --timeout=20m --show-stats --out-format colored-line-number,line-number:run.txt --enable-only ${LINTER}
+          echo "## [${ORG}/${REPO}](${{ github.server_url }}/${ORG}/${REPO})" >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
+          echo '<details>' >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
+          echo '```' >> ${REPORT_DEST}
+          cat run.txt >> ${REPORT_DEST}
+          echo '```' >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
+          echo '</details>' >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
         env:
+          LINTER: ${{ fromJson(github.event.issue.body).linter }}
+          ORG: ${{ matrix.target.org }}
           REPO: ${{ matrix.target.repo }}
+          REPORT_DEST: /tmp/outputs/${{ matrix.target.repo }}/perf.md
 
       # We use:
       # - goconst as a reference of a fast linter.
@@ -126,13 +129,14 @@ jobs:
       - name: Run bench on ${{ matrix.target.org }}/${{ matrix.target.repo }} (without cache)
         run: |
           cd /tmp/target
-          hyperfine --export-markdown perf.md -L linter "${{ fromJson(github.event.issue.body).linter }},goconst,durationcheck" --warmup 2 \
+          hyperfine --export-markdown perf.md -L linter "${LINTER},goconst,durationcheck" --warmup 2 \
           -n '{linter}' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code=0 --timeout=20m --print-issued-lines=false --enable-only {linter}"
-          echo >> /tmp/outputs/${REPO}/perf.md
-          cat perf.md >> /tmp/outputs/${REPO}/perf.md
-          echo >> /tmp/outputs/${REPO}/perf.md
+          echo >> ${REPORT_DEST}
+          cat perf.md >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
         env:
-          REPO: ${{ matrix.target.repo }}
+          LINTER: ${{ fromJson(github.event.issue.body).linter }}
+          REPORT_DEST: /tmp/outputs/${{ matrix.target.repo }}/perf.md
 
       - uses: actions/upload-artifact@v4
         with:

@@ -109,29 +109,41 @@ jobs:
           cd /tmp/target
           go mod tidy
 
-      - name: Simple run of golangci-lint on ${{ matrix.target.org }}/${{ matrix.target.repo }}
-        run: |
-          cd /tmp/target
-          golangci-lint cache clean
-          golangci-lint run --issues-exit-code=0 --timeout=20m --show-stats --print-issued-lines=false --enable-only ${LINTER}
-        env:
-          LINTER: ${{ fromJson(github.event.issue.body).linter }}
-
-      - name: Run Bench ${{ matrix.target.org }}/${{ matrix.target.repo }}
+      - name: Simple run of golangci-lint on ${{ matrix.target.org }}/${{ matrix.target.repo }} (without cache)
         run: |
           mkdir -p /tmp/outputs/${REPO}/
+          cd /tmp/target
+          golangci-lint cache clean
+          golangci-lint run -v --issues-exit-code=0 --timeout=20m --show-stats --out-format colored-line-number,line-number:run.txt --enable-only ${LINTER}
+          echo "## [${ORG}/${REPO}](${{ github.server_url }}/${ORG}/${REPO})" >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
+          echo '<details>' >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
+          echo '```' >> ${REPORT_DEST}
+          cat run.txt >> ${REPORT_DEST}
+          echo '```' >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
+          echo '</details>' >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
+        env:
+          LINTER: ${{ fromJson(github.event.issue.body).linter }}
+          ORG: ${{ matrix.target.org }}
+          REPO: ${{ matrix.target.repo }}
+          REPORT_DEST: /tmp/outputs/${{ matrix.target.repo }}/perf.md
+
+      - name: Run Bench ${{ matrix.target.org }}/${{ matrix.target.repo }} (without cache)
+        run: |
           cd /tmp/target
           hyperfine --export-markdown perf.md --warmup 2 \
           -n 'local' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code=0 --timeout=20m --print-issued-lines=false --enable-only ${LINTER}" \
           -n "${GOLANGCI_LINT_VERSION}" --prepare "golangci-lint-${GOLANGCI_LINT_VERSION} cache clean" "golangci-lint-${GOLANGCI_LINT_VERSION} run --issues-exit-code 0 --timeout=20m --print-issued-lines=false --enable-only ${LINTER}"
-          echo "## [${{ matrix.target.org }}/${REPO}](${{ github.server_url }}/${{ matrix.target.org }}/${REPO})" >> /tmp/outputs/${REPO}/perf.md
-          echo >> /tmp/outputs/${REPO}/perf.md
-          cat perf.md >> /tmp/outputs/${REPO}/perf.md
-          echo >> /tmp/outputs/${REPO}/perf.md
+          echo >> ${REPORT_DEST}
+          cat perf.md >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
         env:
           GOLANGCI_LINT_VERSION: ${{ fromJson(github.event.issue.body).version }}
           LINTER: ${{ fromJson(github.event.issue.body).linter }}
-          REPO: ${{ matrix.target.repo }}
+          REPORT_DEST: /tmp/outputs/${{ matrix.target.repo }}/perf.md
 
       - uses: actions/upload-artifact@v4
         with:
