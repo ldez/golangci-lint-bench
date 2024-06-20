@@ -106,7 +106,7 @@ jobs:
           cd /tmp/target
           golangci-lint cache clean
           golangci-lint run -v --issues-exit-code=0 --timeout=20m --show-stats --out-format colored-line-number,line-number:simple.txt --enable-only ${{ fromJson(github.event.issue.body).linter }}
-          echo "## ${{ matrix.target.org }}/${REPO}" >> /tmp/outputs/${REPO}/perf.md
+          echo "## [${{ matrix.target.org }}/${REPO}](${{ github.server_url }}/${{ matrix.target.org }}/${REPO})" >> /tmp/outputs/${REPO}/perf.md
           echo >> /tmp/outputs/${REPO}/perf.md
           echo '<details>' >> /tmp/outputs/${REPO}/perf.md
           echo >> /tmp/outputs/${REPO}/perf.md

@@ -124,7 +124,7 @@ jobs:
           hyperfine --export-markdown perf.md --warmup 2 \
           -n 'local' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code=0 --timeout=20m --print-issued-lines=false --enable-only ${LINTER}" \
           -n "${GOLANGCI_LINT_VERSION}" --prepare "golangci-lint-${GOLANGCI_LINT_VERSION} cache clean" "golangci-lint-${GOLANGCI_LINT_VERSION} run --issues-exit-code 0 --timeout=20m --print-issued-lines=false --enable-only ${LINTER}"
-          echo "## ${{ matrix.target.org }}/${REPO}" >> /tmp/outputs/${REPO}/perf.md
+          echo "## [${{ matrix.target.org }}/${REPO}](${{ github.server_url }}/${{ matrix.target.org }}/${REPO})" >> /tmp/outputs/${REPO}/perf.md
           echo >> /tmp/outputs/${REPO}/perf.md
           cat perf.md >> /tmp/outputs/${REPO}/perf.md
           echo >> /tmp/outputs/${REPO}/perf.md
