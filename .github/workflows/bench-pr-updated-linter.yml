@@ -121,7 +121,7 @@ jobs:
         run: |
           mkdir -p /tmp/outputs/${REPO}/
           cd /tmp/target
-          hyperfine --warmup 1 --export-markdown perf.md \
+          hyperfine --export-markdown perf.md --warmup 2 \
           -n 'local' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code=0 --timeout=20m --print-issued-lines=false --enable-only ${LINTER}" \
           -n "${GOLANGCI_LINT_VERSION}" --prepare "golangci-lint-${GOLANGCI_LINT_VERSION} cache clean" "golangci-lint-${GOLANGCI_LINT_VERSION} run --issues-exit-code 0 --timeout=20m --print-issued-lines=false --enable-only ${LINTER}"
           echo "## ${{ matrix.target.org }}/${REPO}" >> /tmp/outputs/${REPO}/perf.md

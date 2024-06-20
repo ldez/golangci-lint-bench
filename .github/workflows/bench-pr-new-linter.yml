@@ -122,7 +122,7 @@ jobs:
       - name: Run bench on ${{ matrix.target.org }}/${{ matrix.target.repo }} (without cache)
         run: |
           cd /tmp/target
-          hyperfine --export-markdown perf.md -L linter "${{ fromJson(github.event.issue.body).linter }},goconst,durationcheck" --warmup 1 \
+          hyperfine --export-markdown perf.md -L linter "${{ fromJson(github.event.issue.body).linter }},goconst,durationcheck" --warmup 2 \
           -n '{linter}' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code=0 --timeout=20m --print-issued-lines=false --enable-only {linter}"
           echo >> /tmp/outputs/${REPO}/perf.md
           cat perf.md >> /tmp/outputs/${REPO}/perf.md
