@@ -131,7 +131,7 @@ jobs:
           REPO: ${{ matrix.target.repo }}
           REPORT_DEST: /tmp/outputs/${{ matrix.target.repo }}/perf.md
 
-      - name: Run Bench ${{ matrix.target.org }}/${{ matrix.target.repo }} (without cache)
+      - name: Run bench on ${{ matrix.target.org }}/${{ matrix.target.repo }} (without cache)
         run: |
           cd /tmp/target
           hyperfine --export-markdown perf.md --warmup 2 \
