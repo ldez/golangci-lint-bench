@@ -5,6 +5,6 @@ title: 'benchmark: '
 labels: bench-new-linter
 ---
 {
-  "pr": "",
+  "pr": 0,
   "linter": ""
 }

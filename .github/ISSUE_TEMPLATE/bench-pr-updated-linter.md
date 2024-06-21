@@ -5,7 +5,7 @@ title: 'benchmark: '
 labels: bench-updated-linter
 ---
 {
-  "pr": "",
+  "pr": 0,
   "linter": "",
   "version": "v1.59.1"
 }
