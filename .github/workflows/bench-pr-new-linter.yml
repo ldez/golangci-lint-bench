@@ -125,12 +125,15 @@ jobs:
           mkdir -p /tmp/outputs/${REPO}/
           echo "## [${ORG}/${REPO}](${{ github.server_url }}/${ORG}/${REPO})" >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}
-          echo '<details>' >> ${REPORT_DEST}
-          echo >> ${REPORT_DEST}
-          echo '```' >> ${REPORT_DEST}
-          cat run.txt | head -n 500 >> ${REPORT_DEST}
-          echo '```' >> ${REPORT_DEST}
-          echo >> ${REPORT_DEST}
+          if test "$( cat run.txt | wc -c )" -gt 1
+          then
+            echo '<details>' >> ${REPORT_DEST}
+            echo >> ${REPORT_DEST}
+            echo '```' >> ${REPORT_DEST}
+            cat run.txt | head -n 500 >> ${REPORT_DEST}
+            echo '```' >> ${REPORT_DEST}
+            echo >> ${REPORT_DEST}
+          fi
           echo '</details>' >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}
           cat perf.md >> ${REPORT_DEST}
