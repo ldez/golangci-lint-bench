@@ -102,25 +102,11 @@ jobs:
 
       - name: Simple run of golangci-lint on ${{ matrix.target.org }}/${{ matrix.target.repo }} (without cache)
         run: |
-          mkdir -p /tmp/outputs/${REPO}/
           cd /tmp/target
           golangci-lint cache clean
           golangci-lint run -v --issues-exit-code=0 --max-issues-per-linter 50 --max-same-issues 10 --timeout=20m --show-stats --out-format colored-line-number,line-number:run.txt --enable-only ${LINTER}
-          echo "## [${ORG}/${REPO}](${{ github.server_url }}/${ORG}/${REPO})" >> ${REPORT_DEST}
-          echo >> ${REPORT_DEST}
-          echo '<details>' >> ${REPORT_DEST}
-          echo >> ${REPORT_DEST}
-          echo '```' >> ${REPORT_DEST}
-          cat run.txt | head -n 500 >> ${REPORT_DEST}
-          echo '```' >> ${REPORT_DEST}
-          echo >> ${REPORT_DEST}
-          echo '</details>' >> ${REPORT_DEST}
-          echo >> ${REPORT_DEST}
         env:
           LINTER: ${{ fromJson(github.event.issue.body).linter }}
-          ORG: ${{ matrix.target.org }}
-          REPO: ${{ matrix.target.repo }}
-          REPORT_DEST: /tmp/outputs/${{ matrix.target.repo }}/perf.md
 
       # We use:
       # - goconst as a reference of a fast linter.
@@ -131,17 +117,35 @@ jobs:
           cd /tmp/target
           hyperfine --export-markdown perf.md -L linter "${LINTER},goconst,durationcheck" --warmup 2 \
           -n '{linter}' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code=0 --timeout=20m --print-issued-lines=false --enable-only {linter}"
+        env:
+          LINTER: ${{ fromJson(github.event.issue.body).linter }}
+
+      - name: Build report for ${{ matrix.target.org }}/${{ matrix.target.repo }}
+        run: |
+          cd /tmp/target
+          mkdir -p /tmp/outputs/${REPO}/
+          echo "## [${ORG}/${REPO}](${{ github.server_url }}/${ORG}/${REPO})" >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
+          echo '<details>' >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
+          echo '```' >> ${REPORT_DEST}
+          cat run.txt | head -n 500 >> ${REPORT_DEST}
+          echo '```' >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
+          echo '</details>' >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}
           cat perf.md >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}
         env:
-          LINTER: ${{ fromJson(github.event.issue.body).linter }}
-          REPORT_DEST: /tmp/outputs/${{ matrix.target.repo }}/perf.md
+          ORG: ${{ matrix.target.org }}
+          REPO: ${{ matrix.target.repo }}
+          REPORT_DEST: /tmp/outputs/${{ matrix.target.repo }}/report.md
 
       - uses: actions/upload-artifact@v4
         with:
           name: outputs-${{ matrix.target.repo }}
-          path: /tmp/outputs/**/perf.md
+          path: /tmp/outputs/**/report.md
 
   notify-job-result:
     runs-on: ubuntu-latest

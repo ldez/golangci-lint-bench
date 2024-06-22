@@ -60,23 +60,31 @@ jobs:
 
       - name: Run bench on ${{ fromJson(github.event.issue.body).org }}/${{ fromJson(github.event.issue.body).repo }}
         run: |
-          mkdir -p /tmp/outputs/${REPO}/
           cd /tmp/target
           LINTERS=$(golangci-lint linters | grep "^[a-z0-9]*:" | sed 's/:/ /g' | awk '{print $1}' | sort | sed -z 's/\n/,/g;s/,$/\n/')
           hyperfine --sort 'mean-time' --export-markdown perf.md --warmup 1 -L linter "${LINTERS}" \
           -n '{linter}' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code=0 --timeout=20m --print-issued-lines=false --enable-only {linter}"
-          echo "## ${ORG}/${REPO}" >> /tmp/outputs/${REPO}/perf.md
-          echo >> /tmp/outputs/${REPO}/perf.md
-          cat perf.md >> /tmp/outputs/${REPO}/perf.md
-          echo >> /tmp/outputs/${REPO}/perf.md
         env:
           ORG: ${{ fromJson(github.event.issue.body).org }}
           REPO: ${{ fromJson(github.event.issue.body).repo }}
 
+      - name: Build report for ${{ fromJson(github.event.issue.body).org }}/${{ fromJson(github.event.issue.body).repo }}
+        run: |
+          cd /tmp/target
+          mkdir -p /tmp/outputs/${REPO}/
+          echo "## ${ORG}/${REPO}" >> /tmp/outputs/${REPO}/perf.md
+          echo >> ${REPORT_DEST}
+          cat perf.md >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
+        env:
+          ORG: ${{ fromJson(github.event.issue.body).org }}
+          REPO: ${{ fromJson(github.event.issue.body).repo }}
+          REPORT_DEST: /tmp/outputs/${{ fromJson(github.event.issue.body).repo }}/report.md
+
       - uses: actions/upload-artifact@v4
         with:
           name: outputs-${{ fromJson(github.event.issue.body).repo }}
-          path: /tmp/outputs/**/perf.md
+          path: /tmp/outputs/**/report.md
 
   notify-job-result:
     runs-on: ubuntu-latest
