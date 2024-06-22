@@ -120,7 +120,7 @@ jobs:
           echo '<details><summary>local</summary>' >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}
           echo '```' >> ${REPORT_DEST}
-          cat run.txt >> ${REPORT_DEST}
+          cat run.txt | head -n 500 >> ${REPORT_DEST}
           echo '```' >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}
           echo '</details>' >> ${REPORT_DEST}
@@ -141,7 +141,7 @@ jobs:
           echo "<details><summary>${GOLANGCI_LINT_VERSION}</summary>" >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}
           echo '```' >> ${REPORT_DEST}
-          cat runprevious.txt >> ${REPORT_DEST}
+          cat runprevious.txt | head -n 500 >> ${REPORT_DEST}
           echo '```' >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}
           echo '</details>' >> ${REPORT_DEST}

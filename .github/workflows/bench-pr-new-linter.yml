@@ -111,7 +111,7 @@ jobs:
           echo '<details>' >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}
           echo '```' >> ${REPORT_DEST}
-          cat run.txt >> ${REPORT_DEST}
+          cat run.txt | head -n 500 >> ${REPORT_DEST}
           echo '```' >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}
           echo '</details>' >> ${REPORT_DEST}
