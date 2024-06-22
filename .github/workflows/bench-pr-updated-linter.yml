@@ -109,7 +109,7 @@ jobs:
           cd /tmp/target
           go mod tidy
 
-      - name: Simple run of golangci-lint on ${{ matrix.target.org }}/${{ matrix.target.repo }} (without cache)
+      - name: Simple run of golangci-lint (local) on ${{ matrix.target.org }}/${{ matrix.target.repo }} (without cache)
         run: |
           mkdir -p /tmp/outputs/${REPO}/
           cd /tmp/target
@@ -117,7 +117,7 @@ jobs:
           golangci-lint run -v --issues-exit-code=0 --timeout=20m --show-stats --out-format colored-line-number,line-number:run.txt --enable-only ${LINTER}
           echo "## [${ORG}/${REPO}](${{ github.server_url }}/${ORG}/${REPO})" >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}
-          echo '<details>' >> ${REPORT_DEST}
+          echo '<details><summary>local</summary>' >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}
           echo '```' >> ${REPORT_DEST}
           cat run.txt >> ${REPORT_DEST}
@@ -128,6 +128,27 @@ jobs:
         env:
           LINTER: ${{ fromJson(github.event.issue.body).linter }}
           ORG: ${{ matrix.target.org }}
+          REPO: ${{ matrix.target.repo }}
+          REPORT_DEST: /tmp/outputs/${{ matrix.target.repo }}/perf.md
+
+      - name: Simple run of golangci-lint (${{ fromJson(github.event.issue.body).version }}) on ${{ matrix.target.org }}/${{ matrix.target.repo }} (without cache)
+        run: |
+          mkdir -p /tmp/outputs/${REPO}/
+          cd /tmp/target
+          golangci-lint-${GOLANGCI_LINT_VERSION} cache clean
+          golangci-lint-${GOLANGCI_LINT_VERSION} run -v --issues-exit-code=0 --timeout=20m --show-stats --out-format colored-line-number,line-number:runprevious.txt --enable-only ${LINTER}
+          echo >> ${REPORT_DEST}
+          echo "<details><summary>${GOLANGCI_LINT_VERSION}</summary>" >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
+          echo '```' >> ${REPORT_DEST}
+          cat runprevious.txt >> ${REPORT_DEST}
+          echo '```' >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
+          echo '</details>' >> ${REPORT_DEST}
+          echo >> ${REPORT_DEST}
+        env:
+          LINTER: ${{ fromJson(github.event.issue.body).linter }}
+          GOLANGCI_LINT_VERSION: ${{ fromJson(github.event.issue.body).version }}
           REPO: ${{ matrix.target.repo }}
           REPORT_DEST: /tmp/outputs/${{ matrix.target.repo }}/perf.md
 
