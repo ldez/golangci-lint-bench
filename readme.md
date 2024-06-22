@@ -11,3 +11,8 @@ I use issues (`labeled` event) instead of `workflow_dispatch` as trigger because
 I use issues (`labeled` event) instead of issue comments to limit the number of useless triggers on all comments.
 
 One approach can be to use `workflow_dispatch` as trigger and add the comments inside the targeted PR, this will work for PR, but the benchmark of all linters (not related to a PR) will not work.
+
+The simple run outputs are limited because of the body limit of a comment (maximum is 65536 characters):
+- to max 500 lines
+- `--max-issues-per-linter 50`
+- `--max-same-issues 10`
