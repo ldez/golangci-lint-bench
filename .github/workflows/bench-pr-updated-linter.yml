@@ -30,6 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HYPERFINE_VERSION: 1.18.0
+      TARGET_DIR: /tmp/target
     strategy:
       matrix:
         target:
@@ -105,13 +106,13 @@ jobs:
 
       - name: Clone ${{ matrix.target.org }}/${{ matrix.target.repo }}
         run: |
-          git clone -q --depth 1 --single-branch https://github.com/${{ matrix.target.org }}/${{ matrix.target.repo }}.git /tmp/target
-          cd /tmp/target
+          git clone -q --depth 1 --single-branch https://github.com/${{ matrix.target.org }}/${{ matrix.target.repo }}.git ${TARGET_DIR}
+          cd ${TARGET_DIR}
           go mod tidy
 
       - name: Simple run of golangci-lint (local) on ${{ matrix.target.org }}/${{ matrix.target.repo }} (without cache)
         run: |
-          cd /tmp/target
+          cd ${TARGET_DIR}
           golangci-lint cache clean
           golangci-lint run -v --issues-exit-code=0 --max-issues-per-linter 50 --max-same-issues 10 --timeout=20m --show-stats --out-format colored-line-number,line-number:run.txt --enable-only ${LINTER}
         env:
@@ -119,17 +120,16 @@ jobs:
 
       - name: Simple run of golangci-lint (${{ fromJson(github.event.issue.body).version }}) on ${{ matrix.target.org }}/${{ matrix.target.repo }} (without cache)
         run: |
-          cd /tmp/target
+          cd ${TARGET_DIR}
           golangci-lint-${GOLANGCI_LINT_VERSION} cache clean
           golangci-lint-${GOLANGCI_LINT_VERSION} run -v --issues-exit-code=0 --max-issues-per-linter 50 --max-same-issues 10 --timeout=20m --show-stats --out-format colored-line-number,line-number:runprevious.txt --enable-only ${LINTER}
-
         env:
           LINTER: ${{ fromJson(github.event.issue.body).linter }}
           GOLANGCI_LINT_VERSION: ${{ fromJson(github.event.issue.body).version }}
 
       - name: Run bench on ${{ matrix.target.org }}/${{ matrix.target.repo }} (without cache)
         run: |
-          cd /tmp/target
+          cd ${TARGET_DIR}
           hyperfine --export-markdown perf.md --warmup 2 \
           -n 'local' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code=0 --timeout=20m --print-issued-lines=false --enable-only ${LINTER}" \
           -n "${GOLANGCI_LINT_VERSION}" --prepare "golangci-lint-${GOLANGCI_LINT_VERSION} cache clean" "golangci-lint-${GOLANGCI_LINT_VERSION} run --issues-exit-code 0 --timeout=20m --print-issued-lines=false --enable-only ${LINTER}"
@@ -139,7 +139,7 @@ jobs:
 
       - name: Build report for ${{ matrix.target.org }}/${{ matrix.target.repo }}
         run: |
-          cd /tmp/target
+          cd ${TARGET_DIR}
           mkdir -p /tmp/outputs/${REPO}/
           echo "## [${ORG}/${REPO}](${{ github.server_url }}/${ORG}/${REPO})" >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}

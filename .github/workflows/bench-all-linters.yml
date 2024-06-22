@@ -29,6 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HYPERFINE_VERSION: 1.18.0
+      TARGET_DIR: /tmp/target
 
     steps:
       - name: Hyperfine installation
@@ -51,8 +52,8 @@ jobs:
 
       - name: Clone ${{ fromJson(github.event.issue.body).org }}/${{ fromJson(github.event.issue.body).repo }}
         run: |
-          git clone -q --depth 1 --single-branch https://github.com/${ORG}/${REPO}.git /tmp/target
-          cd /tmp/target
+          git clone -q --depth 1 --single-branch https://github.com/${ORG}/${REPO}.git ${TARGET_DIR}
+          cd ${TARGET_DIR}
           go mod tidy
         env:
           ORG: ${{ fromJson(github.event.issue.body).org }}
@@ -60,7 +61,7 @@ jobs:
 
       - name: Run bench on ${{ fromJson(github.event.issue.body).org }}/${{ fromJson(github.event.issue.body).repo }}
         run: |
-          cd /tmp/target
+          cd ${TARGET_DIR}
           LINTERS=$(golangci-lint linters | grep "^[a-z0-9]*:" | sed 's/:/ /g' | awk '{print $1}' | sort | sed -z 's/\n/,/g;s/,$/\n/')
           hyperfine --sort 'mean-time' --export-markdown perf.md --warmup 1 -L linter "${LINTERS}" \
           -n '{linter}' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code=0 --timeout=20m --print-issued-lines=false --enable-only {linter}"
@@ -70,7 +71,7 @@ jobs:
 
       - name: Build report for ${{ fromJson(github.event.issue.body).org }}/${{ fromJson(github.event.issue.body).repo }}
         run: |
-          cd /tmp/target
+          cd ${TARGET_DIR}
           mkdir -p /tmp/outputs/${REPO}/
           echo "## ${ORG}/${REPO}" >> /tmp/outputs/${REPO}/perf.md
           echo >> ${REPORT_DEST}
