@@ -1,7 +1,7 @@
 ---
 name: "Benchmark PR (new linter)"
 about: "Benchmark a PR for a new linter."
-title: 'benchmark: '
+title: 'benchmark: PR  ()'
 labels: bench-new-linter
 ---
 {
