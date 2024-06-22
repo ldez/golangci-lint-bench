@@ -144,7 +144,6 @@ jobs:
           echo >> ${REPORT_DEST}
           echo '</details>' >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}
-          echo >> ${REPORT_DEST}
           echo "<details><summary>${GOLANGCI_LINT_VERSION}</summary>" >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}
           echo '```' >> ${REPORT_DEST}
@@ -152,7 +151,6 @@ jobs:
           echo '```' >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}
           echo '</details>' >> ${REPORT_DEST}
-          echo >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}
           cat perf.md >> ${REPORT_DEST}
           echo >> ${REPORT_DEST}
