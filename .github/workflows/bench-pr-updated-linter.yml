@@ -30,8 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PR_NUMBER: ${{ fromJson(github.event.issue.body).pr }}
-      GOLANGCI_LINT_VERSION: ${{ fromJson(github.event.issue.body).version }}
       LINTER: ${{ fromJson(github.event.issue.body).linter }}
+      GOLANGCI_LINT_VERSION: ${{ fromJson(github.event.issue.body).version }}
       TARGET_DIR: /tmp/target
       HYPERFINE_VERSION: 1.18.0
     strategy:
