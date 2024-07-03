@@ -1,0 +1,91 @@
+name: Benchmark Test
+
+on:
+  issues:
+    types:
+      - labeled
+
+permissions:
+  issues: write
+
+jobs:
+
+  notify-ack:
+    if: ${{ github.event.label.name == 'bench-test' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Put a reaction
+        run: |
+          gh api graphql --silent --raw-field query="mutation AddReaction {addReaction(input:{subjectId:\"$NODE_ID\",content:EYES}){reaction{content}subject{id}}}"
+          gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:CONFUSED}){reaction{content}subject{id}}}" | true
+          gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:ROCKET}){reaction{content}subject{id}}}" | true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_ID: ${{ github.event.issue.node_id }}
+
+  bench-job:
+    needs: notify-ack
+    if: ${{ github.event.label.name == 'bench-test' }}
+    runs-on: ubuntu-latest
+    env:
+      PR_NUMBER: ${{ fromJson(github.event.issue.body).pr }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: 'golangci/golangci-lint'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Checkout PR
+        run: gh pr checkout --detach --repo "golangci/golangci-lint" ${PR_NUMBER}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download dependencies
+        run:  go mod tidy
+
+      - name: Run bench
+        run:  go test -timeout=4h -bench=. ./test/bench/bench_test.go
+
+  notify-job-result:
+    runs-on: ubuntu-latest
+    needs: bench-job
+    if: ${{ github.event.label.name == 'bench-test' && always() }}
+    steps:
+      - name: Notify on Success
+        if: ${{ contains(needs.*.result, 'success') }}
+        run: |
+          gh api graphql --silent --raw-field query="mutation AddReaction {addReaction(input:{subjectId:\"$NODE_ID\",content:ROCKET}){reaction{content}subject{id}}}"
+          gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:CONFUSED}){reaction{content}subject{id}}}" | true
+          gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:EYES}){reaction{content}subject{id}}}" | true
+          (
+            echo "The benchmark is done!"
+            echo
+            echo "You can find the workflow here:"
+            echo "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          ) | \
+          gh issue comment "${ISSUE_NUMBER}" --repo ${{ github.repository }} -F -
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          NODE_ID: ${{ github.event.issue.node_id }}
+
+      - name: Notify on Failure
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: |
+          gh api graphql --silent --raw-field query="mutation AddReaction {addReaction(input:{subjectId:\"$NODE_ID\",content:CONFUSED}){reaction{content}subject{id}}}"
+          gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:ROCKET}){reaction{content}subject{id}}}" | true
+          gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:EYES}){reaction{content}subject{id}}}" | true
+          (
+            echo "**${{ github.workflow }}**"
+            echo "**Something went wrong!**"
+            echo
+            echo "**Details:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          ) | \
+          gh issue comment "${ISSUE_NUMBER}" --repo ${{ github.repository }} -F -
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          NODE_ID: ${{ github.event.issue.node_id }}
