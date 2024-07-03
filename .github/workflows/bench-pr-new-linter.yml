@@ -87,8 +87,7 @@ jobs:
           go-version: stable
 
       - name: Checkout PR
-        run: |
-          gh pr checkout --detach --repo "golangci/golangci-lint" ${PR_NUMBER}
+        run: gh pr checkout --detach --repo "golangci/golangci-lint" ${PR_NUMBER}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -167,8 +166,7 @@ jobs:
           gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:CONFUSED}){reaction{content}subject{id}}}" | true
           gh api graphql --silent --raw-field query="mutation RemoveReaction {removeReaction(input:{subjectId:\"$NODE_ID\",content:EYES}){reaction{content}subject{id}}}" | true
           (
-            echo "**${{ github.workflow }}**"
-            echo "The benchmark is done!"
+            echo "The benchmark (${{ github.workflow }}) is done!"
             echo
             cat /tmp/outputs/**/**/*.md
             echo
