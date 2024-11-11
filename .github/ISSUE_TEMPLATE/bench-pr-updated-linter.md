@@ -7,5 +7,5 @@ labels: bench-updated-linter
 {
   "pr": 0,
   "linter": "",
-  "version": "v1.61.0"
+  "version": "v1.62.0"
 }
