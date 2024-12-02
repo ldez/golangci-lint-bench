@@ -30,6 +30,8 @@ jobs:
     env:
       PR_NUMBER: ${{ fromJson(github.event.issue.body).pr }}
       LINTER: ${{ fromJson(github.event.issue.body).linter }}
+      MAX_ISSUES_PER_LINTER: ${{ fromJson(github.event.issue.body).maxIssuesPerLinter }}
+      MAX_LINES_PER_RUN: ${{ fromJson(github.event.issue.body).maxLinesPerRun }}
       TARGET_DIR: /tmp/target
       HYPERFINE_VERSION: 1.18.0
     strategy:
@@ -106,7 +108,7 @@ jobs:
         run: |
           cd ${TARGET_DIR}
           golangci-lint cache clean
-          golangci-lint run -v --issues-exit-code=0 --max-issues-per-linter 50 --max-same-issues 10 --timeout=20m --show-stats --out-format colored-line-number,line-number:run.txt --enable-only ${LINTER}
+          golangci-lint run -v --issues-exit-code=0 --max-issues-per-linter ${MAX_ISSUES_PER_LINTER:-50} --max-same-issues 10 --timeout=20m --show-stats --out-format colored-line-number,line-number:run.txt --enable-only ${LINTER}
 
       # We use:
       # - goconst as a reference of a fast linter.
@@ -129,7 +131,7 @@ jobs:
             echo '<details>' >> ${REPORT_DEST}
             echo >> ${REPORT_DEST}
             echo '```' >> ${REPORT_DEST}
-            cat run.txt | head -n 500 >> ${REPORT_DEST}
+            cat run.txt | head -n ${MAX_LINES_PER_RUN:-500} >> ${REPORT_DEST}
             echo '```' >> ${REPORT_DEST}
             echo >> ${REPORT_DEST}
           fi
