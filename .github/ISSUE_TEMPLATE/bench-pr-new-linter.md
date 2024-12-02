@@ -6,5 +6,7 @@ labels: bench-new-linter
 ---
 {
   "pr": 0,
-  "linter": ""
+  "linter": "",
+  "maxIssuesPerLinter": 50,
+  "maxLinesPerRun": 500
 }
