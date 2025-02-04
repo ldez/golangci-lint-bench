@@ -61,8 +61,8 @@ jobs:
             repo: traefik
           - org: spf13
             repo: cobra
-          - org: google
-            repo: go-github
+          # - org: google # custom linter
+          #   repo: go-github
           - org: beego
             repo: beego
           - org: grpc
