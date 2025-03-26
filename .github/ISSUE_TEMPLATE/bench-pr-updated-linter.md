@@ -7,7 +7,7 @@ labels: bench-updated-linter
 {
   "pr": 0,
   "linter": "",
-  "version": "v1.62.0",
+  "version": "v2.0.0",
   "maxIssuesPerLinter": 50,
   "maxLinesPerRun": 500
 }

@@ -102,7 +102,7 @@ jobs:
 
       - name: Install golangci-lint ${{ fromJson(github.event.issue.body).version }}
         run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "./temp-${GOLANGCI_LINT_VERSION}" "${GOLANGCI_LINT_VERSION}"
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b "./temp-${GOLANGCI_LINT_VERSION}" "${GOLANGCI_LINT_VERSION}"
           mv "temp-${GOLANGCI_LINT_VERSION}/golangci-lint" "$(go env GOPATH)/bin/golangci-lint-${GOLANGCI_LINT_VERSION}"
           rm -rf "temp-${GOLANGCI_LINT_VERSION}"
 
@@ -116,20 +116,20 @@ jobs:
         run: |
           cd ${TARGET_DIR}
           golangci-lint cache clean
-          golangci-lint run -v --issues-exit-code=0 --max-issues-per-linter ${MAX_ISSUES_PER_LINTER:-50} --max-same-issues 10 --timeout=20m --show-stats --out-format colored-line-number,line-number:run.txt --enable-only ${LINTER}
+          golangci-lint run -v --issues-exit-code=0 --max-issues-per-linter ${MAX_ISSUES_PER_LINTER:-50} --max-same-issues 10 --timeout=20m --show-stats --output.text.path=run.txt --output.text.colors=false --output.tab.path=stdout --enable-only ${LINTER}
 
       - name: Simple run of golangci-lint (${{ fromJson(github.event.issue.body).version }}) on ${{ matrix.target.org }}/${{ matrix.target.repo }} (without cache)
         run: |
           cd ${TARGET_DIR}
           golangci-lint-${GOLANGCI_LINT_VERSION} cache clean
-          golangci-lint-${GOLANGCI_LINT_VERSION} run -v --issues-exit-code=0 --max-issues-per-linter ${MAX_ISSUES_PER_LINTER:-50} --max-same-issues 10 --timeout=20m --show-stats --out-format colored-line-number,line-number:runprevious.txt --enable-only ${LINTER}
+          golangci-lint-${GOLANGCI_LINT_VERSION} run -v --issues-exit-code=0 --max-issues-per-linter ${MAX_ISSUES_PER_LINTER:-50} --max-same-issues 10 --timeout=20m --show-stats --output.text.path=runprevious.txt --output.text.colors=false --output.tab.path=stdout --enable-only ${LINTER}
 
       - name: Run bench on ${{ matrix.target.org }}/${{ matrix.target.repo }} (without cache)
         run: |
           cd ${TARGET_DIR}
           hyperfine --export-markdown perf.md --warmup 2 \
-          -n 'local' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code=0 --timeout=20m --print-issued-lines=false --enable-only ${LINTER}" \
-          -n "${GOLANGCI_LINT_VERSION}" --prepare "golangci-lint-${GOLANGCI_LINT_VERSION} cache clean" "golangci-lint-${GOLANGCI_LINT_VERSION} run --issues-exit-code 0 --timeout=20m --print-issued-lines=false --enable-only ${LINTER}"
+          -n 'local' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code=0 --timeout=20m --show-stats=false --output.text.print-issued-lines=false --enable-only ${LINTER}" \
+          -n "${GOLANGCI_LINT_VERSION}" --prepare "golangci-lint-${GOLANGCI_LINT_VERSION} cache clean" "golangci-lint-${GOLANGCI_LINT_VERSION} run --issues-exit-code 0 --timeout=20m --show-stats=false --output.text.print-issued-lines=false --enable-only ${LINTER}"
 
       - name: Build report for ${{ matrix.target.org }}/${{ matrix.target.repo }}
         run: |

@@ -63,7 +63,7 @@ jobs:
           cd ${TARGET_DIR}
           LINTERS=$(golangci-lint linters | grep "^[a-z0-9]*:" | sed 's/:/ /g' | awk '{print $1}' | sort | sed -z 's/\n/,/g;s/,$/\n/')
           hyperfine --sort 'mean-time' --export-markdown perf.md --warmup 1 -L linter "${LINTERS}" \
-          -n '{linter}' --prepare 'golangci-lint cache clean' "golangci-lint run --issues-exit-code=0 --timeout=20m --print-issued-lines=false --enable-only {linter}"
+          -n '{linter}' --prepare 'golangci-lint cache clean' "golangci-lint run --show-stats=false --issues-exit-code=0 --timeout=20m --output.text.print-issued-lines=false --enable-only {linter}"
 
       - name: Build report for ${{ fromJson(github.event.issue.body).org }}/${{ fromJson(github.event.issue.body).repo }}
         run: |
