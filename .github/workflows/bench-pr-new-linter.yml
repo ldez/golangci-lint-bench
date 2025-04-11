@@ -112,13 +112,13 @@ jobs:
           golangci-lint run -v --no-config --issues-exit-code=0 --max-issues-per-linter ${MAX_ISSUES_PER_LINTER:-50} --max-same-issues 10 --show-stats --output.text.path=run.txt --output.text.colors=false --output.tab.path=stdout --enable-only ${LINTER}
 
       # We use:
-      # - goconst as a reference of a fast linter.
+      # - godox as a reference of a fast linter.
       # - durationcheck as a reference of a medium/slow linter.
       # It can be changed in the future if needed.
       - name: Run bench on ${{ matrix.target.org }}/${{ matrix.target.repo }} (without cache)
         run: |
           cd ${TARGET_DIR}
-          hyperfine --export-markdown perf.md -L linter "${LINTER},goconst,durationcheck" --warmup 2 \
+          hyperfine --export-markdown perf.md -L linter "${LINTER},godox,durationcheck" --warmup 2 \
           -n '{linter}' --prepare 'golangci-lint cache clean' "golangci-lint run --no-config --issues-exit-code=0 --show-stats=false --output.text.print-issued-lines=false --enable-only {linter}"
 
       - name: Build report for ${{ matrix.target.org }}/${{ matrix.target.repo }}
